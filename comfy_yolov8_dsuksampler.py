@@ -64,30 +64,31 @@ class Yolov8DSUKSamplerNode:
                 cropped_image_np = image_np[y1:y2, x1:x2]
                 cropped_img_tensor_out = torch.tensor(cropped_image_np.astype(np.float32) / 255.0).unsqueeze(0)
 
-                if "seg" in yolo_model_name or "Seg" in yolo_model_name or "SEG" in yolo_model_name:
-                    # segmentation mask
-                    masks = results[0].masks.data
-                    boxes = results[0].boxes.data
+                # if "seg" in yolo_model_name or "Seg" in yolo_model_name or "SEG" in yolo_model_name:
+                #     # segmentation mask
+                #     masks = results[0].masks.data
+                #     boxes = results[0].boxes.data
 
-                    # extract classes
-                    clss = boxes[:, 5]
-                    class_indices = torch.where(clss == class_id)   # get indices of results where class is 0 (people in COCO)
-                    class_masks = masks[class_indices]  # use these indices to extract the relevant masks. shape = (1, H, W)
+                #     # extract classes
+                #     clss = boxes[:, 5]
+                #     class_indices = torch.where(clss == class_id)   # get indices of results where class is 0 (people in COCO)
+                #     class_masks = masks[class_indices]  # use these indices to extract the relevant masks. shape = (1, H, W)
 
-                    # upscale the mask to the original size
-                    class_masks_np = np.asarray(Image.fromarray((class_masks.cpu().numpy().squeeze(0) * 255).astype(np.uint8)))
-                    import cv2
-                    W, H, _ = image_np.shape
-                    scalled = cv2.resize(class_masks_np, (H, W), interpolation=cv2.INTER_AREA)
-                    mask_tensor = torch.any(torch.tensor(scalled).unsqueeze(0), dim=0) * 255 # mask_tensor.shape = torch.Size([H, W])
-                    cropped_mask_tensor = torch.any(torch.tensor(scalled[y1:y2, x1:x2]).unsqueeze(0), dim=0) * 255
+                #     # upscale the mask to the original size
+                #     # 検出箇所が２以上だと class_masks[i] でループ処理する
+                #     class_masks_np = np.asarray(Image.fromarray((class_masks.cpu().numpy().squeeze(0) * 255).astype(np.uint8)))
+                #     import cv2
+                #     W, H, _ = image_np.shape
+                #     scalled = cv2.resize(class_masks_np, (H, W), interpolation=cv2.INTER_AREA)
+                #     mask_tensor = torch.any(torch.tensor(scalled).unsqueeze(0), dim=0) * 255 # mask_tensor.shape = torch.Size([H, W])
+                #     cropped_mask_tensor = torch.any(torch.tensor(scalled[y1:y2, x1:x2]).unsqueeze(0), dim=0) * 255
 
-                else:
-                    # box mask
-                    mask = np.zeros((image_np.shape[0], image_np.shape[1]), dtype=np.float32)
-                    mask[y1:y2, x1:x2] = 1.0
-                    mask_tensor = torch.tensor(mask).unsqueeze(0)  # (1, H, W)
-                    cropped_mask_tensor = mask_tensor
+                # else:
+                #     # box mask
+                #     mask = np.zeros((image_np.shape[0], image_np.shape[1]), dtype=np.float32)
+                #     mask[y1:y2, x1:x2] = 1.0
+                #     mask_tensor = torch.tensor(mask).unsqueeze(0)  # (1, H, W)
+                #     cropped_mask_tensor = mask_tensor
 
                 """
                 Upscale
