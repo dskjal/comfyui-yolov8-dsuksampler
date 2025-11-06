@@ -44,8 +44,8 @@ class Yolov8DSUKSamplerNode:
             },
         }
 
-    RETURN_TYPES = ("IMAGE", "MODEL", "VAE", "CONDITIONING")
-    RETURN_NAMES = ("Image","model pass through", "vae pass through", "negative pass through")
+    RETURN_TYPES = ("IMAGE", "MODEL", "VAE", "CONDITIONING", "IMAGE")
+    RETURN_NAMES = ("Image","model pass through", "vae pass through", "negative pass through", "debug detected area")
     FUNCTION = "sample"
     CATEGORY = "yolov8"
 
@@ -143,7 +143,7 @@ class Yolov8DSUKSamplerNode:
                 """
                 base_image = self.composite(s, base_image, x1, y1, edge_blur_pixel)
 
-        return (base_image, model, vae, negative)
+        return (base_image, model, vae, negative, self.result_to_debug_image(results))
 
 
     def result_to_debug_image(self, results):
