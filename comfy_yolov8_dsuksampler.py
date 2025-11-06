@@ -26,7 +26,7 @@ class Yolov8DSUKSamplerNode:
                 "class_id": ("INT", {"default": 0}),
 
                 "upscale_method": (s.upscale_methods,),
-                "scale_by": ("FLOAT", {"default": 1.0, "min": 0.01, "max": 16.0, "step": 0.01}),
+                "scale_pixel_to": ("INT", {"default": 1024, "min": 512, "max": 2048, "step": 64}),
 
                 "model": ("MODEL",),
                 "vae": ("VAE", ),
@@ -48,7 +48,7 @@ class Yolov8DSUKSamplerNode:
     FUNCTION = "sample"
     CATEGORY = "yolov8"
 
-    def sample(self, image, yolo_model_name, class_id, upscale_method, scale_by, model, vae, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative, denoise, edge_blur_pixel):
+    def sample(self, image, yolo_model_name, class_id, upscale_method, scale_pixel_to, model, vae, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative, denoise, edge_blur_pixel):
         base_image = image.clone()
         image_tensor = image
         image_np = image_tensor.cpu().numpy()  # Change from CxHxW to HxWxC for Pillow
@@ -89,6 +89,14 @@ class Yolov8DSUKSamplerNode:
                 #     mask[y1:y2, x1:x2] = 1.0
                 #     mask_tensor = torch.tensor(mask).unsqueeze(0)  # (1, H, W)
                 #     cropped_mask_tensor = mask_tensor
+
+                _, _, H, W = cropped_img_tensor_out.shape
+                target_length = min(H, W)
+                scale_by = scale_pixel_to / target_length
+                if scale_by >= 16:
+                    print(f"H={H}, W={W}, scale_by={scale_by}")
+                    print("This object is skipped due to the region is too small.")
+                    continue
 
                 """
                 Upscale
