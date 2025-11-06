@@ -1,5 +1,5 @@
 # comfyui-yolov8-dsuksampler
-This node does detection or segmentation, upscale, sample, down sample, blurred composite.
+This node performs detection and segmentation, as well as upsampling, sampling, and blurring the composite.
 
 This node pass through when nothing detected. When this node finds multiple objects, it performs an action on each object it finds.
 
