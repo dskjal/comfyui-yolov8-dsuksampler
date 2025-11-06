@@ -1,7 +1,7 @@
 # comfyui-yolov8-dsuksampler
 This node does detection or segmentation, upscale, sample, down sample, blurred composite.
 
-This node pass through when nothing detected and does each objects when multiple objects detected.
+This node pass through when nothing detected. When this node finds multiple objects, it performs an action on each object it finds.
 
 ## Why do we need this node?
 
