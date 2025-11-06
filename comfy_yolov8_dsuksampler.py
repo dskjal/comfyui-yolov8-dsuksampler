@@ -23,6 +23,7 @@ class Yolov8DSUKSamplerNode:
             "required": {
                 "image": ("IMAGE",), 
                 "yolo_model_name": (folder_paths.get_filename_list("yolov8"), ),
+                "padding_pixel": ("INT", {"default": 0}),
                 "class_id": ("INT", {"default": 0}),
 
                 "upscale_method": (s.upscale_methods,),
@@ -48,7 +49,7 @@ class Yolov8DSUKSamplerNode:
     FUNCTION = "sample"
     CATEGORY = "yolov8"
 
-    def sample(self, image, yolo_model_name, class_id, upscale_method, scale_pixel_to, model, vae, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative, denoise, edge_blur_pixel):
+    def sample(self, image, yolo_model_name, padding_pixel, class_id, upscale_method, scale_pixel_to, model, vae, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative, denoise, edge_blur_pixel):
         base_image = image.clone()
         image_tensor = image
         image_np = image_tensor.cpu().numpy()  # Change from CxHxW to HxWxC for Pillow
@@ -57,10 +58,15 @@ class Yolov8DSUKSamplerNode:
         yolo_model = YOLO(f'{os.path.join(folder_paths.models_dir, "yolov8")}/{yolo_model_name}')
         results = yolo_model(image)
         image_np = np.asarray(image)
+        _, MAX_HEIGHT, MAX_WIDTH, _ = base_image.shape
         for r in results:
             boxes = r.boxes
             for i, box in enumerate(boxes):
                 x1, y1, x2, y2 = map(int, box.xyxy[0])
+                x1 = max(x1-padding_pixel, 0)
+                y1 = max(y1-padding_pixel, 0)
+                x2 = min(x2+padding_pixel, MAX_WIDTH)
+                y2 = min(y2+padding_pixel, MAX_HEIGHT)
                 cropped_image_np = image_np[y1:y2, x1:x2]
                 cropped_img_tensor_out = torch.tensor(cropped_image_np.astype(np.float32) / 255.0).unsqueeze(0)
 
