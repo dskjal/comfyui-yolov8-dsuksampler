@@ -43,8 +43,8 @@ class Yolov8DSUKSamplerNode:
             },
         }
 
-    RETURN_TYPES = ("IMAGE",)
-    RETURN_NAMES = ("Image",)
+    RETURN_TYPES = ("IMAGE", "MODEL", "VAE", "CONDITIONING")
+    RETURN_NAMES = ("Image","model pass through", "vae pass through", "negative pass through")
     FUNCTION = "sample"
     CATEGORY = "yolov8"
 
@@ -94,7 +94,7 @@ class Yolov8DSUKSamplerNode:
                 target_length = min(H, W)
                 scale_by = scale_pixel_to / target_length
                 if scale_by >= 16:
-                    print(f"H={H}, W={W}, scale_by={scale_by}")
+                    print(f"Cropped pixel shape is H={H}, W={W}, scale_by={scale_by}")
                     print("This object is skipped due to the region is too small.")
                     continue
 
@@ -137,7 +137,7 @@ class Yolov8DSUKSamplerNode:
                 """
                 base_image = self.composite(s, base_image, x1, y1, edge_blur_pixel)
 
-        return (base_image, )
+        return (base_image, model, vae, negative)
 
 
     def result_to_debug_image(self, results):
