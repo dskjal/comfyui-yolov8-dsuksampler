@@ -90,7 +90,7 @@ class Yolov8DSUKSamplerNode:
                 #     mask_tensor = torch.tensor(mask).unsqueeze(0)  # (1, H, W)
                 #     cropped_mask_tensor = mask_tensor
 
-                _, _, H, W = cropped_img_tensor_out.shape
+                _, H, W, _ = cropped_img_tensor_out.shape
                 target_length = min(H, W)
                 scale_by = scale_pixel_to / target_length
                 if scale_by >= 16:
