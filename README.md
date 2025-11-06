@@ -10,7 +10,7 @@ This node pass through when nothing detected. When this node finds multiple obje
 1. Nothing detected
 2. Multiple objectes detected
 
-Simple workflow can't skip sample phase when nothing detected and sample multiple objects.
+Simple workflow can't skip sample phase when nothing detected and The simple node can't actions on multiple objects.
 
 ## Sample workflow
 
