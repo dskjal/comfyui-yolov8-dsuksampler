@@ -15,3 +15,9 @@ Simple workflow can't skip sample phase when nothing detected and The simple nod
 ## Sample workflow
 
 ![](https://github.com/dskjal/comfyui-yolov8-dsuksampler/blob/main/comfyui-yolov8-dsuksampler-sample-workflow.png)
+
+## Parameters
+
+|Name|Description|
+|:---|:---|
+|padding pixel|Add padding to the detected box. This is useful for small parts.|
