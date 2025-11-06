@@ -26,7 +26,7 @@ class Yolov8DSUKSamplerNode:
                 "class_id": ("INT", {"default": 0}),
 
                 "upscale_method": (s.upscale_methods,),
-                "scale_by": ("FLOAT", {"default": 1.0, "min": 0.01, "max": 8.0, "step": 0.01}),
+                "scale_by": ("FLOAT", {"default": 1.0, "min": 0.01, "max": 16.0, "step": 0.01}),
 
                 "model": ("MODEL",),
                 "vae": ("VAE", ),
