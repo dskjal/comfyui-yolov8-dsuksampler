@@ -14,7 +14,7 @@ Simple workflow can't skip sample phase when nothing detected and The simple nod
 
 ## Sample workflow
 
-![](https://github.com/dskjal/comfyui-yolov8-dsuksampler/blob/main/comfyui-yolov8-dsuksampler-sample-workflow.png)
+![](https://github.com/dskjal/comfyui-yolov8-dsuksampler/blob/main/comfyui-yolov8-dsuksampler-sample-workflow-v2.png)
 
 ## Parameters
 
