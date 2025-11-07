@@ -21,3 +21,4 @@ Simple workflow can't skip sample phase when nothing detected and The simple nod
 |Name|Description|
 |:---|:---|
 |padding pixel|Add padding to the detected box. This is useful for small parts.|
+|scale pixel to|Imput image is scaled to this resolution.|
