@@ -14,7 +14,7 @@ Simple workflow can't skip sample phase when nothing detected and the simple nod
 
 ## Install
 
-1. Install from the manager or in comfyui `custom_nodes` dir and `git clone https://github.com/dskjal/comfyui-yolov8-dsuksampler.git`
+1. Install from the manager
 2. put detect or seg models in comfyui `models/yolov8` dir
 
 ## Sample workflow
