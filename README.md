@@ -12,6 +12,15 @@ This node pass through when nothing detected. When this node finds multiple obje
 
 Simple workflow can't skip sample phase when nothing detected and the simple node can't action on multiple objects.
 
+## Install
+
+1. in comfyui `custom_nodes` dir and `https://github.com/dskjal/comfyui-yolov8-dsuksampler.git`
+2. put detect or seg models in comfyui `models/yolov8` dir
+
+## How to use
+
+If your yolov8 model has "seg" or "Seg" or "SEG" in the name, the node outputs segmentation mask.
+
 ## Sample workflow
 
 ![](https://github.com/dskjal/comfyui-yolov8-dsuksampler/blob/main/comfyui-yolov8-dsuksampler-sample-workflow-v2.png)
