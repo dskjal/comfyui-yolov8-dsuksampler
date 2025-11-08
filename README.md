@@ -26,4 +26,5 @@ Simple workflow can't skip sample phase when nothing detected and the simple nod
 |Name|Description|
 |:---|:---|
 |padding pixel|Add padding to the detected box. This is useful for small parts. For example, it can be used on eyes, hands, nipples, etc.|
+|threshold|The process is skipped if a confidence score is lower than the threshold. You can check the scores in debug detected area socket|
 |scale pixel to|Cropped image is scaled to this resolution.|
