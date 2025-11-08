@@ -24,7 +24,8 @@ class Yolov8DSUKSamplerNode:
                 "image": ("IMAGE",), 
                 "yolo_model_name": (folder_paths.get_filename_list("yolov8"), ),
                 "padding_pixel": ("INT", {"default": 0}),
-                "class_id": ("INT", {"default": 0}),
+                #"class_id": ("INT", {"default": 0}),
+                "threshold": ("FLOAT", {"default": 0.3, "min": 0.0, "max": 1.0, "step": 0.01, "round": 0.01}),
 
                 "upscale_method": (s.upscale_methods,),
                 "scale_pixel_to": ("INT", {"default": 1024, "min": 512, "max": 2048, "step": 64}),
@@ -40,7 +41,7 @@ class Yolov8DSUKSamplerNode:
                 "negative": ("CONDITIONING", ),
                 "denoise": ("FLOAT", {"default": 1.0, "min": 0.01, "max": 1.0, "step": 0.01}),
 
-                "edge_blur_pixel": ("INT", {"default": 64})
+                "edge_blur_pixel": ("INT", {"default": 64, "min": 0})
             },
         }
 
@@ -49,7 +50,7 @@ class Yolov8DSUKSamplerNode:
     FUNCTION = "sample"
     CATEGORY = "yolov8"
 
-    def sample(self, image, yolo_model_name, padding_pixel, class_id, upscale_method, scale_pixel_to, model, vae, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative, denoise, edge_blur_pixel):
+    def sample(self, image, yolo_model_name, padding_pixel, threshold, upscale_method, scale_pixel_to, model, vae, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative, denoise, edge_blur_pixel):
         base_image = image.clone()
         image_tensor = image
         image_np = image_tensor.cpu().numpy()  # Change from CxHxW to HxWxC for Pillow
@@ -61,6 +62,8 @@ class Yolov8DSUKSamplerNode:
         _, MAX_HEIGHT, MAX_WIDTH, _ = base_image.shape
         for r in results:
             boxes = r.boxes
+            if boxes.conf.cpu().numpy() < threshold:
+                continue
             for i, box in enumerate(boxes):
                 x1, y1, x2, y2 = map(int, box.xyxy[0])
                 x1 = max(x1-padding_pixel, 0)
