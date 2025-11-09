@@ -62,9 +62,9 @@ class Yolov8DSUKSamplerNode:
         _, MAX_HEIGHT, MAX_WIDTH, _ = base_image.shape
         for r in results:
             boxes = r.boxes
-            if boxes.conf.cpu().numpy() < threshold:
-                continue
             for i, box in enumerate(boxes):
+                if box.conf.cpu().numpy() < threshold:
+                    continue
                 x1, y1, x2, y2 = map(int, box.xyxy[0])
                 x1 = max(x1-padding_pixel, 0)
                 y1 = max(y1-padding_pixel, 0)
