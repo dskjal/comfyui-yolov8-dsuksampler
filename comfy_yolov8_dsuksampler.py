@@ -184,35 +184,11 @@ class Yolov8DSUKSamplerNode:
         return (out, )
 
     def trim_zero_padding(self, mask: np.ndarray) -> np.ndarray:
-        """
-        周辺に存在する「行または列がすべて 0」のパディングを除去する
-
-        Parameters
-        ----------
-        mask : np.ndarray
-            shape (W, H) の 2 次元マスク配列
-
-        Returns
-        -------
-        np.ndarray
-            周辺パディング除去後のマスク
-        """
-        if mask.ndim != 2:
-            raise ValueError("mask must be a 2D array")
-
-        # 非ゼロを含む行・列を判定
-        rows = np.any(mask != 0, axis=1)
-        cols = np.any(mask != 0, axis=0)
-
-        # すべて 0 の場合
-        if not rows.any() or not cols.any():
+        nz = np.argwhere(mask)
+        if nz.size == 0:
             return mask[:0, :0]
-
-        # 最外郭インデックス
-        row_min, row_max = np.where(rows)[0][[0, -1]]
-        col_min, col_max = np.where(cols)[0][[0, -1]]
-
-        return mask[row_min:row_max + 1, col_min:col_max + 1]
+        (r0, c0), (r1, c1) = nz.min(0), nz.max(0)
+        return mask[r0:r1+1, c0:c1+1]
 
     def composite(self, overlap_image, mask_np, base_image, x, y, edge_blur_pixel):
         base = np.asarray(base_image.squeeze(0) * 255).astype(np.uint8)
