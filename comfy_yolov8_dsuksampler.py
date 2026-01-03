@@ -4,6 +4,7 @@ import latent_preview
 
 import folder_paths
 from PIL import Image
+import cv2
 import numpy as np
 from ultralytics import YOLO
 import torch
@@ -45,8 +46,8 @@ class Yolov8DSUKSamplerNode:
             },
         }
 
-    RETURN_TYPES = ("IMAGE", "MODEL", "VAE", "CONDITIONING", "IMAGE")
-    RETURN_NAMES = ("Image","model pass through", "vae pass through", "negative pass through", "debug detected area")
+    RETURN_TYPES = ("IMAGE", "MODEL", "VAE", "CONDITIONING", "IMAGE", "IMAGE")
+    RETURN_NAMES = ("Image","model pass through", "vae pass through", "negative pass through", "debug detected area", "debug mask")
     FUNCTION = "sample"
     CATEGORY = "yolov8"
 
@@ -73,32 +74,34 @@ class Yolov8DSUKSamplerNode:
                 cropped_image_np = image_np[y1:y2, x1:x2]
                 cropped_img_tensor_out = torch.tensor(cropped_image_np.astype(np.float32) / 255.0).unsqueeze(0)
 
-                # if "seg" in yolo_model_name or "Seg" in yolo_model_name or "SEG" in yolo_model_name:
-                #     # segmentation mask
-                #     masks = results[0].masks.data
-                #     boxes = results[0].boxes.data
+                if "seg" in yolo_model_name or "Seg" in yolo_model_name or "SEG" in yolo_model_name:
+                    # segmentation mask
+                    masks = results[0].masks.data
+                    boxes = results[0].boxes.data
 
-                #     # extract classes
-                #     clss = boxes[:, 5]
-                #     class_indices = torch.where(clss == class_id)   # get indices of results where class is 0 (people in COCO)
-                #     class_masks = masks[class_indices]  # use these indices to extract the relevant masks. shape = (1, H, W)
+                    # extract classes
+                    clss = boxes[:, 5]
+                    #class_indices = torch.where(clss == class_id)   # get indices of results where class is 0 (people in COCO)
+                    class_indices = torch.where(clss == 0)   # get indices of results where class is 0 (people in COCO)
+                    class_masks = masks[class_indices]  # use these indices to extract the relevant masks. shape = (1, H, W)
 
-                #     # upscale the mask to the original size
-                #     # 検出箇所が２以上だと class_masks[i] でループ処理する
-                #     class_masks_np = np.asarray(Image.fromarray((class_masks.cpu().numpy().squeeze(0) * 255).astype(np.uint8)))
-                #     import cv2
-                #     W, H, _ = image_np.shape
-                #     scalled = cv2.resize(class_masks_np, (H, W), interpolation=cv2.INTER_AREA)
-                #     mask_tensor = torch.any(torch.tensor(scalled).unsqueeze(0), dim=0) * 255 # mask_tensor.shape = torch.Size([H, W])
-                #     cropped_mask_tensor = torch.any(torch.tensor(scalled[y1:y2, x1:x2]).unsqueeze(0), dim=0) * 255
+                    # upscale the mask to the original size since mask is shrinked
+                    # 検出箇所が２以上だと class_masks[i] でループ処理する
+                    class_masks_np = np.asarray(Image.fromarray((class_masks.cpu().numpy().squeeze(0) * 255).astype(np.uint8)))
+                    W, H, _ = image_np.shape
+                    mask_np = cv2.resize(class_masks_np, (H, W), interpolation=cv2.INTER_AREA)
+                    mask_np = np.asarray(mask_np/255).astype(np.float32)
+                    # mask_tensor = torch.any(torch.tensor(scalled).unsqueeze(0), dim=0) * 255 # mask_tensor.shape = torch.Size([H, W])
+                    # cropped_mask_tensor = torch.any(torch.tensor(scalled[y1:y2, x1:x2]).unsqueeze(0), dim=0) * 255
 
-                # else:
-                #     # box mask
-                #     mask = np.zeros((image_np.shape[0], image_np.shape[1]), dtype=np.float32)
-                #     mask[y1:y2, x1:x2] = 1.0
-                #     mask_tensor = torch.tensor(mask).unsqueeze(0)  # (1, H, W)
-                #     cropped_mask_tensor = mask_tensor
+                else:
+                    # box mask
+                    mask_np = np.zeros((image_np.shape[0], image_np.shape[1]), dtype=np.float32)
+                    mask_np[y1:y2, x1:x2] = 1.0
+                    # mask_tensor = torch.tensor(mask).unsqueeze(0)  # (1, H, W)
+                    # cropped_mask_tensor = mask_tensor
 
+                # scale ratio
                 _, H, W, _ = cropped_img_tensor_out.shape
                 target_length = min(H, W)
                 scale_by = scale_pixel_to / target_length
@@ -144,9 +147,9 @@ class Yolov8DSUKSamplerNode:
                 """
                 Composite
                 """
-                base_image = self.composite(s, base_image, x1, y1, edge_blur_pixel)
+                base_image = self.composite(s, mask_np, base_image, x1, y1, edge_blur_pixel)
 
-        return (base_image, model, vae, negative, self.result_to_debug_image(results))
+        return (base_image, model, vae, negative, self.result_to_debug_image(results), torch.unsqueeze(torch.tensor(mask_np), 0))
 
 
     def result_to_debug_image(self, results):
@@ -180,12 +183,12 @@ class Yolov8DSUKSamplerNode:
         out["samples"] = samples
         return (out, )
 
-    def composite(self, overlap_image, base_image, x, y, edge_blur_pixel):
+    def composite(self, overlap_image, mask_np, base_image, x, y, edge_blur_pixel):
         base = np.asarray(base_image.squeeze(0) * 255).astype(np.uint8)
         overlap = np.asarray(overlap_image.squeeze(0) * 255).astype(np.uint8)
 
         H, W, _ = base.shape
-        oh, ow, oc = overlap.shape
+        oh, ow, _ = overlap.shape
 
         # generate alpha channel mask
         alpha = np.ones((oh, ow), dtype=np.float32)
@@ -197,14 +200,11 @@ class Yolov8DSUKSamplerNode:
             alpha[:, i] = np.minimum(alpha[:, i], fade)              # 左
             alpha[:, ow - 1 - i] = np.minimum(alpha[:, ow - 1 - i], fade)  # 右
 
-        # process alpha channel
-        overlap_a = overlap
-        if oc == 4:
-            overlap_rgb = overlap[..., :3].astype(np.float32)
-            overlap_a = overlap[..., 3].astype(np.float32)
-            alpha = alpha * overlap_a
-        else:
-            overlap_rgb = overlap.astype(np.float32)
+        # process mask
+        overlap_rgb = overlap[..., :3].astype(np.float32)
+        overlap_a = mask_np.astype(np.float32)
+        overlap_a = cv2.resize(overlap_a, (ow, oh), interpolation=cv2.INTER_AREA)
+        alpha = alpha * overlap_a
 
         # expand an image channel
         alpha3 = np.expand_dims(alpha, axis=-1)
