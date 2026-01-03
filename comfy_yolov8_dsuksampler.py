@@ -73,6 +73,7 @@ class Yolov8DSUKSamplerNode:
                 y2 = min(y2+padding_pixel, MAX_HEIGHT)
                 cropped_image_np = image_np[y1:y2, x1:x2]
                 cropped_img_tensor_out = torch.tensor(cropped_image_np.astype(np.float32) / 255.0).unsqueeze(0)
+                _, H, W, _ = cropped_img_tensor_out.shape
 
                 if "seg" in yolo_model_name or "Seg" in yolo_model_name or "SEG" in yolo_model_name:
                     # segmentation mask
@@ -88,8 +89,8 @@ class Yolov8DSUKSamplerNode:
                     # upscale the mask to the original size since mask is shrinked
                     # 検出箇所が２以上だと class_masks[i] でループ処理する
                     class_masks_np = np.asarray(Image.fromarray((class_masks.cpu().numpy().squeeze(0) * 255).astype(np.uint8)))
-                    W, H, _ = image_np.shape
-                    mask_np = cv2.resize(class_masks_np, (H, W), interpolation=cv2.INTER_AREA)
+                    class_masks_np = self.trim_zero_padding(class_masks_np)
+                    mask_np = cv2.resize(class_masks_np, (W, H), interpolation=cv2.INTER_AREA)
                     mask_np = np.asarray(mask_np/255).astype(np.float32)
                     # mask_tensor = torch.any(torch.tensor(scalled).unsqueeze(0), dim=0) * 255 # mask_tensor.shape = torch.Size([H, W])
                     # cropped_mask_tensor = torch.any(torch.tensor(scalled[y1:y2, x1:x2]).unsqueeze(0), dim=0) * 255
@@ -102,7 +103,6 @@ class Yolov8DSUKSamplerNode:
                     # cropped_mask_tensor = mask_tensor
 
                 # scale ratio
-                _, H, W, _ = cropped_img_tensor_out.shape
                 target_length = min(H, W)
                 scale_by = scale_pixel_to / target_length
                 if scale_by >= 16:
@@ -183,6 +183,37 @@ class Yolov8DSUKSamplerNode:
         out["samples"] = samples
         return (out, )
 
+    def trim_zero_padding(self, mask: np.ndarray) -> np.ndarray:
+        """
+        周辺に存在する「行または列がすべて 0」のパディングを除去する
+
+        Parameters
+        ----------
+        mask : np.ndarray
+            shape (W, H) の 2 次元マスク配列
+
+        Returns
+        -------
+        np.ndarray
+            周辺パディング除去後のマスク
+        """
+        if mask.ndim != 2:
+            raise ValueError("mask must be a 2D array")
+
+        # 非ゼロを含む行・列を判定
+        rows = np.any(mask != 0, axis=1)
+        cols = np.any(mask != 0, axis=0)
+
+        # すべて 0 の場合
+        if not rows.any() or not cols.any():
+            return mask[:0, :0]
+
+        # 最外郭インデックス
+        row_min, row_max = np.where(rows)[0][[0, -1]]
+        col_min, col_max = np.where(cols)[0][[0, -1]]
+
+        return mask[row_min:row_max + 1, col_min:col_max + 1]
+
     def composite(self, overlap_image, mask_np, base_image, x, y, edge_blur_pixel):
         base = np.asarray(base_image.squeeze(0) * 255).astype(np.uint8)
         overlap = np.asarray(overlap_image.squeeze(0) * 255).astype(np.uint8)
@@ -202,9 +233,8 @@ class Yolov8DSUKSamplerNode:
 
         # process mask
         overlap_rgb = overlap[..., :3].astype(np.float32)
-        overlap_a = mask_np.astype(np.float32)
-        overlap_a = cv2.resize(overlap_a, (ow, oh), interpolation=cv2.INTER_AREA)
-        alpha = alpha * overlap_a
+        scaled_mask_np = cv2.resize(mask_np.astype(np.float32), (ow, oh), interpolation=cv2.INTER_AREA)
+        alpha = alpha * scaled_mask_np
 
         # expand an image channel
         alpha3 = np.expand_dims(alpha, axis=-1)
@@ -212,13 +242,13 @@ class Yolov8DSUKSamplerNode:
         # coords
         x1, y1 = max(0, x), max(0, y)
         x2, y2 = min(W, x + ow), min(H, y + oh)
-        ox1, oy1 = max(0, -x), max(0, -y)
-        ox2, oy2 = ox1 + (x2 - x1), oy1 + (y2 - y1)
+        FW = x2 - x1
+        FH = y2 - y1
 
         # crop base image
         region_base = base[y1:y2, x1:x2, :].astype(np.float32)
-        region_overlap = overlap_rgb[oy1:oy2, ox1:ox2, :]
-        region_alpha = alpha3[oy1:oy2, ox1:ox2, :]
+        region_overlap = overlap_rgb[0:FH, 0:FW ,:]
+        region_alpha = alpha3[0:FH, 0:FW ,:]
 
         # --- adjust base channel count (in case of mismatch) ---
         if region_base.shape[2] != region_overlap.shape[2]:
