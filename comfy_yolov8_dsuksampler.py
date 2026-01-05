@@ -6,6 +6,7 @@ import folder_paths
 from PIL import Image
 import cv2
 import numpy as np
+from scipy.ndimage import gaussian_filter
 from ultralytics import YOLO
 import torch
 import os
@@ -42,7 +43,8 @@ class Yolov8DSUKSamplerNode:
                 "negative": ("CONDITIONING", ),
                 "denoise": ("FLOAT", {"default": 1.0, "min": 0.01, "max": 1.0, "step": 0.01}),
 
-                "edge_blur_pixel": ("INT", {"default": 64, "min": 0})
+                "edge_blur_pixel": ("INT", {"default": 64, "min": 0}),
+                "mask_blur_pixel": ("INT", {"default":4, "min":0})
             },
         }
 
@@ -51,7 +53,7 @@ class Yolov8DSUKSamplerNode:
     FUNCTION = "sample"
     CATEGORY = "yolov8"
 
-    def sample(self, image, yolo_model_name, padding_pixel, threshold, upscale_method, scale_pixel_to, model, vae, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative, denoise, edge_blur_pixel):
+    def sample(self, image, yolo_model_name, padding_pixel, threshold, upscale_method, scale_pixel_to, model, vae, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative, denoise, edge_blur_pixel, mask_blur_pixel):
         base_image = image.clone()
         image_tensor = image
         image_np = image_tensor.cpu().numpy()  # Change from CxHxW to HxWxC for Pillow
@@ -102,6 +104,9 @@ class Yolov8DSUKSamplerNode:
                     # mask_tensor = torch.tensor(mask).unsqueeze(0)  # (1, H, W)
                     # cropped_mask_tensor = mask_tensor
 
+                # blur mask
+                mask_np = gaussian_filter(mask_np, sigma=mask_blur_pixel)
+                
                 # scale ratio
                 target_length = min(H, W)
                 scale_by = scale_pixel_to / target_length
