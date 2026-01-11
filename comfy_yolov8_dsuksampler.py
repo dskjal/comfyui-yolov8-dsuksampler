@@ -94,15 +94,10 @@ class Yolov8DSUKSamplerNode:
                     class_masks_np = self.trim_zero_padding(class_masks_np)
                     mask_np = cv2.resize(class_masks_np, (W, H), interpolation=cv2.INTER_AREA)
                     mask_np = np.asarray(mask_np/255).astype(np.float32)
-                    # mask_tensor = torch.any(torch.tensor(scalled).unsqueeze(0), dim=0) * 255 # mask_tensor.shape = torch.Size([H, W])
-                    # cropped_mask_tensor = torch.any(torch.tensor(scalled[y1:y2, x1:x2]).unsqueeze(0), dim=0) * 255
 
                 else:
                     # box mask
-                    mask_np = np.zeros((image_np.shape[0], image_np.shape[1]), dtype=np.float32)
-                    mask_np[y1:y2, x1:x2] = 1.0
-                    # mask_tensor = torch.tensor(mask).unsqueeze(0)  # (1, H, W)
-                    # cropped_mask_tensor = mask_tensor
+                    mask_np = np.ones((H, W), dtype=np.float32)
 
                 # blur mask
                 mask_np = gaussian_filter(mask_np, sigma=mask_blur_pixel)
