@@ -79,8 +79,8 @@ class Yolov8DSUKSamplerNode:
 
                 if "seg" in yolo_model_name or "Seg" in yolo_model_name or "SEG" in yolo_model_name:
                     # segmentation mask
-                    masks = results[0].masks.data
-                    boxes = results[0].boxes.data
+                    masks = r.masks.data
+                    boxes = r.boxes.data
 
                     # extract classes
                     clss = boxes[:, 5]
@@ -88,12 +88,19 @@ class Yolov8DSUKSamplerNode:
                     class_indices = torch.where(clss == 0)   # get indices of results where class is 0 (people in COCO)
                     class_masks = masks[class_indices]  # use these indices to extract the relevant masks. shape = (1, H, W)
 
-                    # upscale the mask to the original size since mask is shrinked
-                    # 検出箇所が２以上だと class_masks[i] でループ処理する
-                    class_masks_np = np.asarray(Image.fromarray((class_masks.cpu().numpy().squeeze(0) * 255).astype(np.uint8)))
-                    class_masks_np = self.trim_zero_padding(class_masks_np)
-                    mask_np = cv2.resize(class_masks_np, (W, H), interpolation=cv2.INTER_AREA)
-                    mask_np = np.asarray(mask_np/255).astype(np.float32)
+                    # 複数マスクを1枚に統合
+                    # max or logical_or 相当
+                    #merged_mask = torch.max(class_masks, dim=0).values  # (Hm, Wm)
+
+                    # numpy 化
+                    merged_mask_np = (class_masks[i].cpu().numpy() * 255).astype(np.uint8)
+
+                    # zero padding 除去
+                    merged_mask_np = self.trim_zero_padding(merged_mask_np)
+
+                    # 元の cropped image サイズへリサイズ
+                    mask_np = cv2.resize(merged_mask_np, (W, H), interpolation=cv2.INTER_AREA)
+                    mask_np = (mask_np / 255.0).astype(np.float32)
 
                 else:
                     # box mask
