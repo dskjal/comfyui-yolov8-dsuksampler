@@ -26,7 +26,7 @@ def round_cropped_coords(x1:int, y1:int, x2:int, y2:int, max_width:int, max_heig
         new_x2 = x2 - x_sign * odd_x/2
     else:
         new_x1 = x1 + x_sign * (odd_x+1)/2
-        new_x2 = x2 - x_sign(odd_x+1)/2 + 1 # +1 は端数分
+        new_x2 = x2 - x_sign * (odd_x+1)/2 + 1 # +1 は端数分
 
     odd_y = (y2-y1) % RESOLUTION_STEP
     if odd_y % 2 == 0:
