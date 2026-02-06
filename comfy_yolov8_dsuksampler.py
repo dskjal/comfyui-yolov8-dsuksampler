@@ -89,6 +89,7 @@ class Yolov8DSUKSamplerNode:
         yolo_model = YOLO(f'{os.path.join(folder_paths.models_dir, "yolov8")}/{yolo_model_name}')
         results = yolo_model(image)
         image_np = np.asarray(image)
+        mask_np = np.ones((1, 1), dtype=np.float32) # used when no object is detected
         _, MAX_HEIGHT, MAX_WIDTH, _ = base_image.shape
         for r in results:
             boxes = r.boxes
