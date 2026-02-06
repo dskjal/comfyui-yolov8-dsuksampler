@@ -15,30 +15,6 @@ import math
 folder_paths.folder_names_and_paths["yolov8"] = ([os.path.join(folder_paths.models_dir, "yolov8")], folder_paths.supported_pt_extensions)
 
 RESOLUTION_STEP = 64
-HALF_RESOLUTION_STEP = int(RESOLUTION_STEP/2)
-def round_cropped_coords(x1:int, y1:int, x2:int, y2:int, max_width:int, max_height:int):
-    x_sign =  1 if (x2-x1) + RESOLUTION_STEP > max_width else -1
-    y_sign = 1 if (y2-y1) + RESOLUTION_STEP > max_height else -1
-
-    odd_x = (x2-x1) % RESOLUTION_STEP
-    if odd_x % 2 == 0:
-        new_x1 = x1 + x_sign * odd_x/2
-        new_x2 = x2 - x_sign * odd_x/2
-    else:
-        new_x1 = x1 + x_sign * (odd_x+1)/2
-        new_x2 = x2 - x_sign * (odd_x+1)/2 + 1 # +1 は端数分
-
-    odd_y = (y2-y1) % RESOLUTION_STEP
-    if odd_y % 2 == 0:
-        new_y1 = y1 + y_sign * odd_y/2
-        new_y2 = y2 - y_sign * odd_y/2
-    else:
-        new_y1 = y1 + y_sign * (odd_y+1)/2
-        new_y2 = y2 + y_sign * (odd_y+1)/2 + 1
-    
-    return int(new_x1), int(new_y1), int(new_x2), int(new_y2)
-
-    
 
 class Yolov8DSUKSamplerNode:
     upscale_methods = ["nearest-exact", "bilinear", "area", "bicubic", "lanczos"]
@@ -101,7 +77,6 @@ class Yolov8DSUKSamplerNode:
                 y1 = max(y1-padding_pixel, 0)
                 x2 = min(x2+padding_pixel, MAX_WIDTH)
                 y2 = min(y2+padding_pixel, MAX_HEIGHT)
-                x1, y1, x2, y2 = round_cropped_coords(x1, y1, x2, y2, MAX_WIDTH, MAX_HEIGHT)
                 cropped_image_np = image_np[y1:y2, x1:x2]
                 cropped_img_tensor_out = torch.tensor(cropped_image_np.astype(np.float32) / 255.0).unsqueeze(0)
                 _, H, W, _ = cropped_img_tensor_out.shape
@@ -150,8 +125,8 @@ class Yolov8DSUKSamplerNode:
                 Upscale
                 """
                 samples = cropped_img_tensor_out.movedim(-1,1)
-                width = round(samples.shape[3] * scale_by)
-                height = round(samples.shape[2] * scale_by)
+                width = round(samples.shape[3] * scale_by) // RESOLUTION_STEP * RESOLUTION_STEP
+                height = round(samples.shape[2] * scale_by) // RESOLUTION_STEP * RESOLUTION_STEP
                 s = comfy.utils.common_upscale(samples, width, height, upscale_method, "disabled")
                 s = s.movedim(1,-1)
             
