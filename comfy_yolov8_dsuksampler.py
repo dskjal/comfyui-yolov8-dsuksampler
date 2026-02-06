@@ -150,9 +150,7 @@ class Yolov8DSUKSamplerNode:
                 Downscale
                 """
                 samples = images.movedim(-1,1)
-                width = round(samples.shape[3] * (1/scale_by))
-                height = round(samples.shape[2] * (1/scale_by))
-                s = comfy.utils.common_upscale(samples, width, height, upscale_method, "disabled")
+                s = comfy.utils.common_upscale(samples, W, H, upscale_method, "disabled")
                 s = s.movedim(1,-1)
 
                 """
